@@ -1,0 +1,57 @@
+---
+- hosts: drone
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: |
+        Check if system is read write
+        description: Checks to see if the system is read only. If so, the system is given read/write (rw)
+      ansible.netcommon.telnet:
+        host: 192.168.42.1
+        password: ""
+        login_prompt: ""
+        prompts:
+          - "[#$]"
+        command:
+          - touch /etc/test
+      register: result
+      ignore_errors: yes
+
+    - name: Print the result
+      debug:
+        var: result
+
+    - name: Clean up /etc/test
+      ansible.netcommon.telnet:
+        host: 192.168.42.1
+        password: ""
+        login_prompt: ""
+        prompts:
+          - "[#$]"
+        command:
+          - rm /etc/test
+      when: result.changed == true
+
+    - name: |
+        Check if system is read write
+        description: If system is read only, then make it read write
+      ansible.netcommon.telnet:
+        host: 192.168.42.1
+        password: ""
+        login_prompt: ""
+        prompts:
+          - "[#$]"
+        command: mount -o remount,rw /
+      when: result.failed == true
+
+    - name: |
+        Update /etc/inetd.conf with FTP port 71
+        description: Add port 71 to inetd.conf
+      ansible.netcommon.telnet:
+        host: 192.168.42.1
+        password: ""
+        login_prompt: ""
+        prompts:
+          - "[#$]"
+        command:
+          - "echo '71 stream tcp nowait root ftpd ftpd -SS /' >> /etc/inetd.conf"
